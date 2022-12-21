@@ -84,7 +84,12 @@ void mainMenu() {
 }
 
 void helpMenu() {
-	std::cout << "  -- Math: For math mode" << std::endl;
+	std::cout << "mode --audit\t\t\t\t\t\t=> For switching to the Auction audit mode \n" << std::endl;
+	std::cout << "mode --bid\t\t\t\t\t\t=> For swithcing to the bid mode \n" << std::endl;
+	std::cout << "login --username <username> --password <password>  \t=> For login to an existing account\n" << std::endl;
+	std::cout << "signup --username <username> --password <password> \t=> For creating a new  account\n" << std::endl;
+	std::cout << "quit\t\t\t\t\t\t\t=> For quiting \n" << std::endl;
+	std::cout << "help\t\t\t\t\t\t\t=> For help \n" << std::endl;
 }
 
 void auditorMenu(std::string command, std::vector<std::regex> regexs, MockDatabase& m, User u)
@@ -115,12 +120,27 @@ void auditorMenu(std::string command, std::vector<std::regex> regexs, MockDataba
 	}
 
 	if (std::regex_match(command, regexs[4])) {
-		std::cout << "Delete auction!" << std::endl;
+		std::vector<std::string> splits = splitCommand(command);
+		unsigned int id = std::stoull(splits[2]);
+		deleteAuction(m, u, id);
 		return;
 	}
 
 	if (std::regex_match(command, regexs[5])) {
-		std::cout << "Update auction!" << std::endl;
+		std::vector<std::string> splits = splitCommand(command);
+		unsigned int id = std::stoull(splits[2]);
+		if (splits.size() <= 3) {
+			std::cout << "Unrecognized command"<<std::endl;
+			return;
+		}
+		std::time_t f=NULL, t=NULL;
+		float p=NULL;
+
+		if (splits[3].compare("--from") == 0) {
+			f = stringToTime(splits[4]);
+		}
+
+		updateAuction(m, u, id, f, t, p);
 		return;
 	}
 
@@ -135,9 +155,16 @@ void auditorMenu(std::string command, std::vector<std::regex> regexs, MockDataba
 
 
 void bidderMenu(std::string command, std::vector<std::regex> regexs, MockDatabase& m,User u) {
-	std::cout << "Bye!" << std::endl;
+	
 	if (std::regex_match(command, regexs[0])) {
-		std::cout << "AWESOME" << std::endl;
+		std::vector<std::string> splits = splitCommand(command);
+		unsigned int auctionId = std::stoull(splits[3]);
+		float amount = std::stof(splits[5]);
+
+		Auction a = findAuction(m, u);
+		Bid n_bid = Bid(m.bidIncrementNumber + 1, u, amount, a.getId());
+		m.insertBid(n_bid);
 	}
+
 }
 

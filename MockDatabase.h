@@ -69,16 +69,32 @@ public:
 		return from;
 	}
 
+	void setFrom(std::time_t from) {
+		this->from = from;
+	}
+
 	std::time_t getTo() {
 		return to;
+	}
+
+	void setTo(std::time_t to) {
+		this->to = to;
 	}
 
 	float getStartingPrice() {
 		return startingPrice;
 	}
 
+	void setStartingPrice(float sprice) {
+		this->startingPrice = sprice;
+	}
+
 	float getCurrentPrice() {
 		return currentPrice;
+	}
+
+	void setCurrentPrice(float price) {
+		this->currentPrice = price;
 	}
 
 	void addBid(Bid* b) {

@@ -40,7 +40,9 @@ void initializeCommandsRegex(std::vector<std::regex>& mainMenuCommands,
 	};
 
 	bidderMenuCommands = {
-		std::regex("bid[ ]*--bid .*")
+		std::regex("create bid[ ]+--auction[ ]+.*[ ]+--amount[ ]+[0-9]+"),
+		std::regex("withdraw[ ]+--bid[ ]+.*"),
+		std::regex("increase[ ]+--bid[ ]+.*[ ]+--amount[ ]+[0-9]+")
 	};
 }
 
@@ -117,13 +119,57 @@ void displayAuctionsOfUser(const MockDatabase m, User u) {
 	}
 }
 
+void deleteAuction(MockDatabase& m, User u, unsigned int id)
+{
+	for (auto a = m.accessibleAuctions.begin(); a != m.accessibleAuctions.end();++a) {
+		if (a->getId() == id) {
+			if (a->getOwner().getUsername().compare(u.getUsername()) == 0) {
+				m.accessibleAuctions.erase(a);
+				std::cout << "Auction deleted successfully!" << std::endl;
+			}else{
+				std::cout << "The given auction does not belong to user " << u.getUsername() << " ans cannot be deleted" << std::endl;
+				return;
+			}
+		}
+	}
+}
+
+
+
+void updateAuction(MockDatabase& m, User u, unsigned int id, std::time_t from, std::time_t to, float s_price)
+{
+	for (int i = 0; i < m.accessibleAuctions.size(); i++) {
+		Auction a = m.accessibleAuctions[i];
+		if (a.getId() == id) {
+			if (a.getOwner().getUsername() == u.getUsername()) {
+				if (from != NULL) {
+					a.setFrom(from);
+				}
+				if (to != NULL) {
+					a.setTo(to);
+				}
+				if (s_price != NULL) {
+					a.setStartingPrice(s_price);
+				}
+				std::cout << "Auction updated successfully" << std::endl;
+				m.accessibleAuctions[i] = a;
+			}
+			else {
+				std::cout << "The user " << u.getUsername() << " have no permission to update this auction" << std::endl;
+			}
+		}
+	}
+}
+
 void closeAuction(MockDatabase& m, User u,unsigned int id) {
-	for (Auction a : m.accessibleAuctions) {
+	for (int i = 0; i < m.accessibleAuctions.size();i++) {
+		Auction a = m.accessibleAuctions[i];
 		if (a.getId() == id) {
 			if (a.getOwner().getUsername() == u.getUsername()) {
 				if (a.isOpen()) {
 					a.close();
 					std::cout << "Auction closed successfully!" << std::endl;
+					m.accessibleAuctions[i] = a;
 				}
 				else {
 					std::cout << "Auction already closed!" << std::endl;
