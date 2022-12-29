@@ -34,6 +34,7 @@ void initializeCommandsRegex(std::vector<std::regex>& mainMenuCommands,
 		std::regex("create[ ]+--from[ ]+[0-9][0-9]/[0-9][0-9]/[0-9][0-9] --to[ ]+[0-9][0-9]/[0-9][0-9]/[0-9][0-9] --s_price[ ]+[0-9]+"),
 		std::regex("show[ ]+--all[ ]*"),
 		std::regex("show[ ]+--self[ ]*"),
+		std::regex("open[ ]+--auction[ ]+.+"),
 		std::regex("close[ ]+--auction[ ]+.+"),
 		std::regex("delete[ ]+--auction[ ]+.+"),
 		std::regex("update[ ]+--auction[ ]+.+(( )+--from[ ]+[0-9][0-9]/[0-9][0-9]/[0-9][0-9])?(( )+--to[ ]+[0-9][0-9]/[0-9][0-9]/[0-9][0-9])?(( )+--s_price[ ]+[0-9]+)?")
@@ -41,6 +42,9 @@ void initializeCommandsRegex(std::vector<std::regex>& mainMenuCommands,
 
 	bidderMenuCommands = {
 		std::regex("create bid[ ]+--auction[ ]+.*[ ]+--amount[ ]+[0-9]+"),
+		std::regex("show[ ]+--all[ ]*"),
+		std::regex("show[ ]+--self[ ]*"),
+		std::regex("show[ ]+--auction[ ]+.*"),
 		std::regex("withdraw[ ]+--bid[ ]+.*"),
 		std::regex("increase[ ]+--bid[ ]+.*[ ]+--amount[ ]+[0-9]+")
 	};
@@ -126,12 +130,14 @@ void deleteAuction(MockDatabase& m, User u, unsigned int id)
 			if (a->getOwner().getUsername().compare(u.getUsername()) == 0) {
 				m.accessibleAuctions.erase(a);
 				std::cout << "Auction deleted successfully!" << std::endl;
+				return;
 			}else{
 				std::cout << "The given auction does not belong to user " << u.getUsername() << " ans cannot be deleted" << std::endl;
 				return;
 			}
 		}
 	}
+	std::cout << "Auction does not exist!" << std::endl;
 }
 
 
@@ -161,6 +167,95 @@ void updateAuction(MockDatabase& m, User u, unsigned int id, std::time_t from, s
 	}
 }
 
+void displayBids(const MockDatabase m)
+{
+	std::cout << "ID\t|" << "User\t|" << "Auction\t|" << "Amount\t|" << "Commited At\t|" << "Is winning\t" << std::endl;
+	for (Bid b : m.commitedBids) {
+		std::cout << b.getBidId() << "\t|" << b.getBidder().getUsername() << "\t|" << b.getAuctionId() << "\t\t|" << b.getAmount() << "\t" << timeToString(b.getCommissionTime()) << "\t|" << b.isWining() << std::endl;
+	}
+}
+
+void createBid(MockDatabase& m, const User u, float amount, int auction_index)
+{
+	Auction a = m.accessibleAuctions[auction_index];
+
+	//Handle former highest bidder
+	Bid b_old = a.getWinner();
+	b_old.setWins(false);
+	int b_old_index = findBidIndex(m,b_old.getBidId());
+	if (b_old_index != -1) {
+		m.commitedBids[b_old_index] = b_old;
+		return;
+	}
+
+	//Handle new highest bidder
+	Bid b_new = Bid(m.bidIncrementNumber + 1, u, amount, a.getId());
+	b_new.setWins(true);
+	m.bidIncrementNumber = m.bidIncrementNumber + 1;
+
+
+	a.setWinner(b_new);
+	a.setCurrentPrice(amount);
+
+	//update the auction and the new bids
+	m.accessibleAuctions[auction_index] = a;
+	m.insertBid(b_new);
+}
+
+void displayBidsOfUser(const MockDatabase m, User u)
+{
+	std::cout << "ID\t|" << "Auction\t|" << "Amount\t|" << "Commited At\t|" << "Is winning\t" << std::endl;
+	for (Bid b : m.commitedBids) {
+		if(b.getBidder().getUsername().compare(u.getUsername()) == 0)
+		std::cout << b.getBidId() << "\t|" << b.getAuctionId() << "\t\t|" << b.getAmount() << "\t" << timeToString(b.getCommissionTime()) << "\t|" << b.isWining() << std::endl;
+	}
+}
+
+void displayBidsOfAuction(const MockDatabase m, unsigned int auctionid)
+{
+	std::cout << "ID\t|" << "User\t|" << "Amount\t|" << "Commited At\t|" << "Is winning\t" << std::endl;
+	for (Bid b : m.commitedBids) {
+		if (b.getAuctionId() == auctionid)
+			std::cout << b.getBidId() << "\t|" << b.getBidder().getUsername() << "\t|" << b.getAmount() << "\t" << timeToString(b.getCommissionTime()) << "\t|" << b.isWining() << std::endl;
+	}
+}
+
+int findAuction(MockDatabase& m, unsigned int auctionid)
+{
+	int a_index = -1;
+	for (unsigned int i = 0; i < m.accessibleAuctions.size();i++) {
+		if (m.accessibleAuctions[i].getId() == auctionid) {
+			a_index = i;
+			break;
+		}
+	}
+	if (a_index == -1) {
+		std::cout << "Auction not found!" << std::endl;
+	}
+	return a_index;
+}
+
+void openAuction(MockDatabase& m, User u, unsigned int id) {
+	for (int i = 0; i < m.accessibleAuctions.size(); i++) {
+		Auction a = m.accessibleAuctions[i];
+		if (a.getId() == id) {
+			if (a.getOwner().getUsername() == u.getUsername()) {
+				if (!a.isOpen()) {
+					a.reopen();
+					std::cout << "Auction opened successfully!" << std::endl;
+					m.accessibleAuctions[i] = a;
+				}
+				else {
+					std::cout << "Auction already open!" << std::endl;
+				}
+			}
+			else {
+				std::cout << "The user " << u.getUsername() << " have no permission to close this auction" << std::endl;
+			}
+		}
+	}
+}
+
 void closeAuction(MockDatabase& m, User u,unsigned int id) {
 	for (int i = 0; i < m.accessibleAuctions.size();i++) {
 		Auction a = m.accessibleAuctions[i];
@@ -180,4 +275,33 @@ void closeAuction(MockDatabase& m, User u,unsigned int id) {
 			}
 		}
 	}
+}
+
+void withdrawBid(MockDatabase& m, unsigned int bidId) {
+	for (unsigned int i = 0; i < m.commitedBids.size(); i++) {
+		if (m.commitedBids[i].getBidId() == bidId) {
+			m.commitedBids[i].remove();
+			return;
+		}
+	}
+}
+
+void increaseBid(MockDatabase& m, unsigned int bidId, float accAmount) {
+	for (unsigned int i = 0; i < m.commitedBids.size(); i++) {
+		if (m.commitedBids[i].getBidId() == bidId) {
+			m.commitedBids[i].increaseAmount(accAmount);
+			return;
+		}
+	}
+}
+
+int findBidIndex(MockDatabase m, unsigned int id) {
+	int b_index = -1;
+	for (int i = 0; i < m.commitedBids.size(); i++) {
+		if (m.commitedBids[i].getBidId() == id) {
+			b_index = i;
+			break;
+		}
+	}
+	return b_index;
 }

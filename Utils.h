@@ -38,6 +38,17 @@ std::string timeToString(std::time_t t);
 //AUCTION FUNCTIONS
 void displayAuctions(const MockDatabase m);
 void displayAuctionsOfUser(const MockDatabase m, User u);
+void openAuction(MockDatabase& m, User u, unsigned int id);
 void closeAuction(MockDatabase& m, User u, unsigned int id);
 void deleteAuction(MockDatabase& m, User u, unsigned int id);
 void updateAuction(MockDatabase& m, User u, unsigned int id, std::time_t from, std::time_t to, float s_price);
+int findAuction(MockDatabase& m, unsigned int auctionid);
+
+//BID FUNCTIONS
+void createBid(MockDatabase& m, const User u, float amount, int auction_index);
+void displayBids(const MockDatabase m);
+void displayBidsOfUser(const MockDatabase m, User u);
+void displayBidsOfAuction(const MockDatabase m, unsigned int auctionId);
+void withdrawBid(MockDatabase& m,unsigned int bidId);
+void increaseBid(MockDatabase& m, unsigned int bidId, float accAmount);
+int findBidIndex(MockDatabase m, unsigned int id);

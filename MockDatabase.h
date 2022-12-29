@@ -26,16 +26,67 @@ private:
 	float amount;
 	unsigned int  auctionId;
 	std::time_t commitedAt;
-	bool wins;
+	bool wins,deleted;
 
 public:
 	Bid() = default;
 	Bid(unsigned int bidId,User bidder, float amount, unsigned int auctionId):bidId(bidId),bidder(bidder),amount(amount),
-	auctionId(auctionId),commitedAt(time(0)),wins(false){
+	auctionId(auctionId),commitedAt(std::chrono::system_clock::to_time_t(
+		std::chrono::system_clock::now())),wins(false),deleted(false){
 	}
 
 	unsigned int getBidId() {
 		return bidId;
+	}
+	User getBidder() {
+		return bidder;
+	}
+	void setBidder(User u) {
+		this->bidder = u;
+	}
+	float getAmount() {
+		return amount;
+	}
+	void setAmount(float amount) {
+		this->amount = amount;
+	}
+
+	void increaseAmount(float amount) {
+		this->amount = this->amount + amount;
+		std::cout << "Successfully increased amount. New bid value: " << amount << std::endl;
+	}
+
+	unsigned int getAuctionId() {
+		return auctionId;
+	}
+
+	std::time_t getCommissionTime() {
+		return commitedAt;
+	}
+
+	void setCommissionTime(std::time_t commitedAt) {
+		this->commitedAt = commitedAt;
+	}
+
+	bool getWins() {
+		return wins;
+	}
+
+	std::string isWining() {
+		return wins ? "Yes" : "No";
+	}
+
+	void setWins(bool wins) {
+		this->wins = wins;
+	}
+
+	bool getDeleted() {
+		return deleted;
+	}
+
+	void remove() {
+		deleted = true;
+		std::cout << "Bid successfully deleted!" << std::endl;
 	}
 };
 
@@ -111,6 +162,14 @@ public:
 
 	void reopen() {
 		open = true;
+	}
+
+	void setWinner(Bid b) {
+		this->winner = b;
+	}
+
+	Bid getWinner() {
+		return winner;
 	}
 };
 
